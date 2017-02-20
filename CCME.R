@@ -515,7 +515,7 @@ CCME <- function (edge_list,
                      "communities_before_OLfilt" = comms0,
                      "OLfilt" = OLfilt,
                      "update_info" = update_info,
-                     nonNullIndxs)
+                     "nonNullIndxs" = nonNullIndxs)
   return(returnList)
   
 }
