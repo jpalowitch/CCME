@@ -5,7 +5,7 @@ library(RcppArmadillo)
 library(microbenchmark)
 library(igraph)
 
-sourceCpp("methodFiles/ccme/new_funs.cpp")
+sourceCpp("new_funs.cpp")
 
 CCME <- function (edge_list, 
                   alpha = 0.05, 
@@ -16,7 +16,8 @@ CCME <- function (edge_list,
                   loopOutput = TRUE, 
                   generalOutput = TRUE,
                   throwInitial = FALSE,
-                  fastInitial = FALSE) {
+                  fastInitial = FALSE,
+                  zoverlap = FALSE) {
   if (FALSE) {
     alpha = 0.05
     binary = FALSE
@@ -27,6 +28,7 @@ CCME <- function (edge_list,
     generalOutput = TRUE
     throwInitial = FALSE
     fastInitial = FALSE
+    zoverlap = FALSE
   }
 
   
@@ -40,10 +42,15 @@ CCME <- function (edge_list,
     return(length(symdiff(s1, s2)) / length(union(s1, s2)))
   }
   
-  filter_overlap <- function (comms, tau) {
+  filter_overlap <- function (comms, tau, Zoverlap = zoverlap) {
     
     K <- length(comms)
-    scores <- unlist(lapply(comms, length))
+    if (Zoverlap) {
+      scores <- unlist(lapply(comms, get_set_z2))
+    } else {
+      scores <- unlist(lapply(comms, length))
+    }
+    
     
     jaccard_mat0 <- matrix(0, K, K)
     for (i in 1:K) {
@@ -141,6 +148,14 @@ CCME <- function (edge_list,
     rm(SSo, SSe, suv, duv, sparseSummary)
     gc()
     
+  }
+  
+  # z fun for overlap checking
+  get_set_z2 <- function (B) {
+    stat <- sum(edge_list$weight[edge_list$node1 %in% B & edge_list$node2 %in% B])
+    B_s <- strengths[B]
+    B_d <- degrees[B]
+    return(get_set_z(stat, B_s, B_d, theta, dT, sT))
   }
   
   # Sampling initial sets ------------------------------------------------------
@@ -310,7 +325,7 @@ CCME <- function (edge_list,
   }
 
   # p-value function -----------------------------------------------------------
-  pvalFun <- function (B, nSet = V) {
+  pvalFun <- function (B, nSet = 1:n) {
     
     nodesToB <- intersect(which(colSums(adjMat[B, ]) > 0), nSet)
     m <- length(B)
@@ -324,7 +339,7 @@ CCME <- function (edge_list,
       means <- sB_in * sum(sB_out) / sT    
       
       vars <- varFun(dB_in, sB_in, dB_out, sB_out, theta, dT, sT)
-      stats <- rowSums(adjMat[nodesToB, B])
+      stats <- rowSums(adjMat[nodesToB, B, drop = FALSE])
       pvalsToB <- pnorm(stats, means, sqrt(vars), lower.tail = FALSE)
         
       
@@ -420,8 +435,7 @@ CCME <- function (edge_list,
         
         if (updateOutput) {
           cat(paste0("Update ", itCount, 
-           " is size ", length(B_new), 
-           " (", length(B_newx), ", ", length(B_newy), "), ",
+           " is size ", length(B_new), ", ",
            "jaccard to last is ", round(consec_jaccard, 3), ", ",
            "mean jaccard along chain is ", round(mean(jaccards), 3), "\n", sep=""))
         }
@@ -458,10 +472,12 @@ CCME <- function (edge_list,
             B_new <- B_J
             B_J_check <- unlist(lapply(chain, function (B) jaccard(B_J, B)))
             if (sum(B_J_check == 0) > 0) {
-              cat(" ---- Old cycle\n")
+              if (updateOutput)
+                cat(" ---- Old cycle\n")
               break
             } else {
-              cat(" ---- New cycle\n")
+              if (updateOutput)
+                cat(" ---- New cycle\n")
             }
             
           } # From checking jaccards to cycle_chain
@@ -500,7 +516,7 @@ CCME <- function (edge_list,
   comms0 <- comms[nonNullIndxs]
   filtered_comms <- list(NULL)
   if (length(comms0) > 0) {
-    OLfilt <- filter_overlap(comms0, tau = OL_thres)
+    OLfilt <- filter_overlap(comms0, tau = OL_thres, Zoverlap = TRUE)
     filtered_comms <- OLfilt$final_comms
   } else {
     OLfilt <- NULL

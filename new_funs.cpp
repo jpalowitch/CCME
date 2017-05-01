@@ -120,8 +120,53 @@ double get_set_pvalue(double stat,
   //Rcout << stat << std::endl;
   //Rcout << R::pnorm(stat, total_mean, sqrt(4 * half_var_sum), 1, 0) << std::endl;
 
-  double pval = 1 - R::pnorm(stat, total_mean, sqrt(4 * half_var_sum), 1, 0);
+  double pval = R::pnorm(stat, total_mean, sqrt(4 * half_var_sum), 0, 0);
   return pval;
+}
+
+// [[Rcpp::export]]
+
+double get_set_z(double stat,
+                 NumericVector B_s, 
+                 IntegerVector B_d, 
+                 double theta, 
+                 double dT, 
+                 double sT) {
+  // set size
+  int m = B_s.size();
+  
+  // getting mean
+  double total_mean = (pow(sum(B_s), 2) - sum(B_s * B_s)) / sT;
+  
+  //Rcout << total_mean << std::endl;
+  
+  // getting half-variance sum
+  double half_var_sum = 0;
+  double duv = 0;
+  double suv = 0;
+  
+  for(int u = 0; u < m; ++u) {
+    
+    for(int v = 0; v < u; ++v) {
+      
+      duv = B_d[u] * B_d[v] / dT;
+      if(duv > 1){
+        duv = 1;
+      }
+      suv = B_s[u] * B_s[v] / sT;
+      
+      half_var_sum += suv * suv * (1 - duv + theta) / duv;
+      
+    }
+    
+  }
+  
+  //Rcout << half_var_sum << std::endl;
+  //Rcout << stat << std::endl;
+  //Rcout << R::pnorm(stat, total_mean, sqrt(4 * half_var_sum), 1, 0) << std::endl;
+  
+  double z = (stat - total_mean) / sqrt(4 * half_var_sum);
+  return z;
 }
 
 // [[Rcpp::export]]
