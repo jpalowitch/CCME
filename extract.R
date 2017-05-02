@@ -1,4 +1,4 @@
-extract <- function (inNodes) {
+extract <- function (i) {
   
   if (!fastInitial) {
     doTheNode <- !inNodes[i] %in% unionC
@@ -127,10 +127,17 @@ extract <- function (inNodes) {
     update_info <- list("mean_jaccards" = mean_jaccards,
                          "consec_jaccards" = consec_jaccards,
                          "found_cycle" = found_cycle,
-                         "found_break" = found_break)
+                         "found_break" = found_break,
+                         "didNode" = doTheNode)
+    
+  } else {
+    
+    B_new <- integer(0)
+    update_info <- list("didNode" = doTheNode)
     
   }
+                        
   
-  return("comm" = B_new, "update_info" = update_info)
+  return(list("comm" = B_new, "update_info" = update_info))
   
 }

@@ -150,4 +150,6 @@ initialize <- function (n.samples = NULL) {
     inNodes <- unlist(lapply(inSets, function (c) c[1]))
     
   }
+  
+  return(list("inSets" = inSets, "inNodes" = inNodes))
 }
