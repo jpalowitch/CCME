@@ -119,8 +119,6 @@ extract <- function (i) {
       
     } # From Updates
     
-    #comms[[i]] <- B_new
-    #unionC <<- unique(unlist(comms))
     unionC <<- union(B_new, unionC)
     cat(paste0(length(unionC), " vertices in communities.\n"))
     
