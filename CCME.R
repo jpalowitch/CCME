@@ -5,7 +5,7 @@ library(RcppArmadillo)
 library(microbenchmark)
 library(igraph)
 
-sourceCpp("new_funs.cpp")
+#sourceCpp("new_funs.cpp")
 
 CCME <- function (edge_list, 
                   alpha = 0.05, 
