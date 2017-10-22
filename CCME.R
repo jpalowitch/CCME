@@ -192,7 +192,8 @@ CCME <- function (edge_list,
       for (i in 1:nSets) {
         if (floor(i / increment) > inc_pos) {
           inc_pos <- inc_pos + 1
-          cat(paste0("--", inc_pos * 10, "%"))
+          if (generalOutput)
+            cat(paste0("--", inc_pos * 10, "%"))
         }
         indxs_i <- b_indxs[i]:e_indxs[i]
         if (sum(probs[indxs_i] > 0)) {
@@ -421,7 +422,8 @@ CCME <- function (edge_list,
               seq_pair_jaccards[j] <- jaccard(chain[[Start + j - 1]], chain[[Start + j]])
             }
             if (sum(seq_pair_jaccards == 1) > 0) {# then break needed
-              cat(" ---- Break found\n")
+              if (updateOutput)
+                cat(" ---- Break found\n")
               found_break[itCount] <- TRUE
               B_new <- NULL
               break
