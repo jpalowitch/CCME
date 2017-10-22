@@ -219,29 +219,27 @@ NumericVector get_set_stats(IntegerVector b_indx,
                             IntegerVector set_indx,
                             IntegerVector i,
                             IntegerVector j,
-                            NumericVector w){
+                            NumericVector w,
+                            bool generalOutput){
   
   int nSets = b_indx.size();
   NumericVector set_stats(nSets);
   double increment = nSets / 10;
   int inc_pos = 0;
-  Rcout << "--0%";
+  if (generalOutput) {
+    Rcout << "--0%";
+  }
   
   for(int k = 0; k < nSets; k++){
     
     if (floor(k / increment) > inc_pos) {
       inc_pos += 1;
-      Rcout << "--" << inc_pos * 10 << "%";
+      if (generalOutput) {
+        Rcout << "--" << inc_pos * 10 << "%";
+      }
     }
-
-    //Rcout << "b_indx[k] - 1 = " << b_indx[k] - 1 << std::endl;
-    //Rcout << "e_indx[k] - 1 = " << e_indx[k] - 1 << std::endl;
-    //Rcout << "indx_seq(14, 18) = " << indx_seq(14, 18) << std::endl;
     
     IntegerVector indx_seq_k = indx_seq(b_indx[k] - 1, e_indx[k] - 1);
-
-    //Rcout << "indx_seq_k = " << indx_seq_k << std::endl;
-
     IntegerVector B = set_indx[indx_seq_k];
     IntegerVector set_indx_i = which_in_int(i, B);
     IntegerVector j_indxs = j[set_indx_i - 1];
@@ -251,8 +249,6 @@ NumericVector get_set_stats(IntegerVector b_indx,
     set_stats[k] = 2 * sum(weights_k);
     
   }
-  
-  //Rcout << "--100%" << std::endl;
   
   return set_stats;
   

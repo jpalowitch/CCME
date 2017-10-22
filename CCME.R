@@ -184,8 +184,10 @@ CCME <- function (edge_list,
       # Sampling
       inc_pos <- 0
       increment <- nSets / 10
-      cat("Sampling candidate initial sets:\n")
-      cat("--0%")
+      if (generalOutput) {
+        cat("Sampling candidate initial sets:\n")
+        cat("--0%")
+      }
       
       for (i in 1:nSets) {
         if (floor(i / increment) > inc_pos) {
@@ -206,7 +208,8 @@ CCME <- function (edge_list,
         }
       }
       
-      cat("\n")
+      if (generalOutput)
+        cat("\n")
       
       # Making reduced data frame
       samples <- dataToSample[chosen == 1, ]
@@ -217,15 +220,18 @@ CCME <- function (edge_list,
       samples <- samples[!samples$fromNodes %in% singleton_initializers, ]
       inNodes <- setdiff(inNodes, singleton_initializers)
       
-      cat("Calculating set test statistics:\n")
+      if (generalOutput)
+        cat("Calculating set test statistics:\n")
       # Get stats
       nSets2 <- length(inNodes)
       b_indxs2 <- which(diff(c(0, samples$tracker)) > 0)
       e_indxs2 <- c(b_indxs2[2:nSets2] - 1, nrow(samples))
       set_stats <- get_set_stats(b_indxs2, e_indxs2, samples$toNodes,
                                  edge_list$node1, edge_list$node2,
-                                 edge_list$weight)
-      cat("\n")
+                                 edge_list$weight,
+                                 generalOutput = generalOutput)
+      if (generalOutput)
+        cat("\n")
       
       # Extracting sets into list
       inSets <- split(samples$toNodes, 
@@ -241,14 +247,15 @@ CCME <- function (edge_list,
       
       # Calculating p-values
       report_vec <- seq(1, nSets2, length.out = 11)
-      cat("Calculating set p-values:\n")
+      if (generalOutput)
+        cat("Calculating set p-values:\n")
       # p-value function for lapply (utilizes Rcpp)
       get_set_pvalue_R <- function (inSet_stat) {
         report_score <- inSet_stat[[3]] - report_vec
         last_report <- suppressWarnings(
           min(report_score[report_score >= 0])
         )
-        if (last_report < 1) {
+        if (generalOutput && last_report < 1) {
           cat(paste0("--", (sum(report_score >= 0) - 1) * 10, "%"))
         }
         return (get_set_pvalue(inSet_stat[[2]],
@@ -258,7 +265,8 @@ CCME <- function (edge_list,
       }
       
       pvals <- unlist(lapply(inSets_plus_stats, get_set_pvalue_R))
-      cat("\n")
+      if (generalOutput)
+        cat("\n")
       
       # Filtering
       rejections <- bh_reject(pvals, alpha)  
@@ -369,7 +377,8 @@ CCME <- function (edge_list,
       itCount <- 0
       cycledSets <- NULL
       
-      cat("Beginning Updates\n")
+      if (loopOutput)
+        cat("Beginning Updates\n")
       
       while (length(B_new) > 1) {
         
@@ -443,7 +452,8 @@ CCME <- function (edge_list,
       } # From Updates
       
       unionC <<- union(B_new, unionC)
-      cat(paste0(length(unionC), " vertices in communities.\n"))
+      if (loopOutput)
+        cat(paste0(length(unionC), " vertices in communities.\n"))
       
       update_info <- list("mean_jaccards" = mean_jaccards,
                           "consec_jaccards" = consec_jaccards,
