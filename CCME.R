@@ -300,13 +300,13 @@ CCME <- function (edge_list,
     
     nodesToB <- intersect(which(colSums(adjMat[B, ]) > 0), nSet)
     m <- length(B)
+    dB_out <- degrees[B]
+    dB_in  <- degrees[nodesToB]
     
     if (!binary) {
       
       sB_out <- strengths[B]
       sB_in  <- strengths[nodesToB]
-      dB_out <- degrees[B]
-      dB_in  <- degrees[nodesToB]
       means <- sB_in * sum(sB_out) / sT    
       
       vars <- varFun(dB_in, sB_in, dB_out, sB_out, theta, dT, sT)
@@ -316,11 +316,8 @@ CCME <- function (edge_list,
       
     } else {
       
-      stats <- rowSums(adjMat[nSet, B])
-      pvalsToB <- pbinom(stats - 1, 
-                         degrees, 
-                         sum(degrees[B]) / dT, 
-                         lower.tail = FALSE)
+      stats <- rowSums(adjMat[nodesToB, B])
+      pvalsToB <- pbinom(stats - 1, dB_in, sum(dB_out) / dT, lower.tail = FALSE)
       
     }
     
