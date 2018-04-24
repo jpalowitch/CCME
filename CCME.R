@@ -17,7 +17,8 @@ CCME <- function (edge_list,
                   generalOutput = TRUE,
                   throwInitial = FALSE,
                   fastInitial = FALSE,
-                  zoverlap = FALSE) {
+                  zoverlap = FALSE,
+                  bipartite = FALSE) {
   if (FALSE) {
     alpha = 0.05
     binary = FALSE
@@ -29,6 +30,11 @@ CCME <- function (edge_list,
     throwInitial = FALSE
     fastInitial = FALSE
     zoverlap = FALSE
+  }
+  
+  if (bipartite && !binary) {
+    message("Bipartite version not available for weighted networks.")
+    stop()
   }
 
   
@@ -103,8 +109,7 @@ CCME <- function (edge_list,
     
   }
   
-  varpar <- function () {
-    
+  varpar <- function () {    
     
     if(generalOutput)
       cat("--Calculating variance..\n")
@@ -130,8 +135,44 @@ CCME <- function (edge_list,
     return(theta)
     
   }
+  
+  halfUpdate <- function (S1, side) {
+    pvals <- pvalFun(S, side)
+    S2 <- side[bh_reject(pvals)]
+    if (length(S1) == 0 || length(S2) == 0) {
+      return(integer(0))
+    } else {
+      return(c(S1, S2))
+    }
+  }  
+  
+  initializeBinary <- function (n.samples=NULL) {
+  
+    if (is.null(n.samples)) {
+      n.samples <- n
+    }
+    
+    if (bipartite) {
+      inSets <- rep(list(NULL), length(side1) + length(side2))
+      for (u in side1) {
+        B <- which(adjMat[u, ] > 0)
+        inSets[[side1 == u]] <- halfUpdate(B, side1)
+      }
+      for (v in side2) {
+        A <- which(adjMat[v, ] > 0)
+        inSets[[side2 == v]] <- halfUpdate(A, side2)
+      }
+      inNodes <- c(side1, side2)
+    } else {
+      for (u in 1:n) {
+        inSets[[u]] <- which(adjMat[u, ] > 0)
+      }
+      inNodes <- 1:n
+    }    
+    return(list("inSets" = inSets, "inNodes" = inNodes))
+  }
 
-  initialize <- function (n.samples = NULL) {
+  initializeWeighted <- function (n.samples = NULL) {
     
     if (is.null(n.samples)) n.samples <- n
     
@@ -327,6 +368,20 @@ CCME <- function (edge_list,
     
   }
   
+  bipartitePvalFun <-  function (B) {
+    pvals <- rep(1, length(B))
+    B1 <- B[B %in% side1]
+    B2 <- B[B %in% side2]
+    if (length(B1) == 0 || length(B2) == 0) {
+        return(pvals)
+    }
+    B1pvals <- pvalFun(B1, side2)
+    B2pvals <- pvalFun(B2, side1)    
+    pvals[B %in% side1] <- B1pvals
+    pvals[B %in% side2] <- B2pvals
+    return(pvals)
+  }
+  
   extract <- function (i) {
     
     if (!fastInitial) {
@@ -381,7 +436,11 @@ CCME <- function (edge_list,
       while (length(B_new) > 1) {
         
         itCount <- itCount + 1
-        pvals <- pvalFun(B_old, nSet = 1:n)
+        if (!bipartite) {
+          pvals <- pvalFun(B_old, nSet = 1:n)
+        } else {
+          pvals <- bipartitePvalFun(B_old)
+        }
         B_new <- bh_reject(pvals, alpha)
         
         consec_jaccard <- jaccard(B_new, B_old)
@@ -495,7 +554,6 @@ CCME <- function (edge_list,
   
   if (!binary) {
     
-    degrees <- colSums(adjMat > 0)
     strengths <- colSums(adjMat)
     
     sT <- sum(strengths)
@@ -505,9 +563,22 @@ CCME <- function (edge_list,
     
   }
   
+  if (bipartite) {
+    side1 <- unique(sort(edge_list[ , 1]))
+    side2 <- unique(sort(edge_list[ , 2]))
+    if (length(intersect(side1, side2)) > 0) {
+      message("Error: bipartite sides are not disjoint.")
+      stop()
+    }
+  }
+  
   # Sampling initial sets ------------------------------------------------------
   
-  initRes <- initialize(n.samples)
+  if (binary) {
+    initRes <- initializeBinary(n.samples)
+  } else {
+    initRes <- initializeWeighted(n.samples)
+  }
   inSets <- initRes$inSets
   inNodes <- initRes$inNodes
   rm(initRes)
